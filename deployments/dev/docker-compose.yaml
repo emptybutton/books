@@ -1,4 +1,4 @@
-name: app-name-kebab-case
+name: books
 
 services:
   backend:
@@ -6,8 +6,8 @@ services:
       context: ../../
       dockerfile: deployments/dev/backend/Dockerfile
       tags:
-        - "app-name-kebab-case-backend:dev"
-    container_name: app-name-kebab-case-backend
+        - "books-backend:dev"
+    container_name: books-backend
     volumes:
       - ../..:/app
       - backend-data:/run/app
@@ -19,11 +19,11 @@ services:
     environment:
       JWT_SECRET: super-secret-jwt-secret
       POSTGRES_URL: postgresql+psycopg://root:root@postgres/root
-    command: app-name-kebab-case-fastapi-dev
+    command: books-fastapi-dev
 
   postgres:
     image: postgres:16.3-alpine3.19
-    container_name: app-name-kebab-case-postgres
+    container_name: books-postgres
     labels:
       deployment: dev
     volumes:

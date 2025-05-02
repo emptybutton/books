@@ -1,13 +1,13 @@
-# app-name-kebab-case
+# books
 Что бы начать, замените в названиях и содержаниях всех файлах:
-1. `app-name-kebab-case` - на название вашего приложение в kebab-case
-2. `app_name_snake_case` - на название вашего приложение в snake_case
-2. `app_name_description` - на описание
+1. `books` - на название вашего приложение в kebab-case
+2. `books` - на название вашего приложение в snake_case
+2. `Backend application for books` - на описание
 
-app_name_description.
+Backend application for books.
 
 ## Развертывание для разработки
 ```bash
-git clone https://github.com/emptybutton/app-name-kebab-case.git
-docker compose -f app-name-kebab-case/deployments/dev/docker-compose.yaml up
+git clone https://github.com/emptybutton/books.git
+docker compose -f books/deployments/dev/docker-compose.yaml up
 ```

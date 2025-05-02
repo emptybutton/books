@@ -39,7 +39,7 @@ wheels = [
 ]
 
 [[package]]
-name = "app-name-kebab-case"
+name = "books"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
