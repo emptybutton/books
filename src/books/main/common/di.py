@@ -80,9 +80,7 @@ class CommonProvider(Provider):
     )
 
     @provide(scope=Scope.REQUEST)
-    def provide_transaction(
-        self, session: AsyncSession
-    ) -> Transaction:
+    def provide_transaction(self, session: AsyncSession) -> Transaction:
         return in_postgres_transaction(session=session)
 
     provide_user_views = provide(
@@ -96,7 +94,7 @@ class CommonProvider(Provider):
     provide_register_user = provide(
         RegisterUser[JWT, UserSchema, UserSchema | None],
         provides=RegisterUser[str, UserSchema, UserSchema | None],
-        scope=Scope.REQUEST
+        scope=Scope.REQUEST,
     )
     provide_view_user = provide(
         ViewUser[JWT, UserSchema, UserSchema | None],

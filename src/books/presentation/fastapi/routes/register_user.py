@@ -49,13 +49,13 @@ async def register_user_route(
             signed_user_id=signed_user_id, user_name=request_body.user_name
         )
     except RegisteredUserToRegisterUserError:
-        response_body = (
-            AlreadyRegisteredUserSchema().model_dump(mode="json", by_alias=True)
+        response_body = AlreadyRegisteredUserSchema().model_dump(
+            mode="json", by_alias=True
         )
         return JSONResponse(response_body, status_code=status.HTTP_409_CONFLICT)
     except TakenUserNameToRegisterUserError:
-        response_body = (
-            AlreadyTakenUserNameSchema().model_dump(mode="json", by_alias=True)
+        response_body = AlreadyTakenUserNameSchema().model_dump(
+            mode="json", by_alias=True
         )
         return JSONResponse(response_body, status_code=status.HTTP_409_CONFLICT)
 

@@ -17,7 +17,7 @@ async def in_postgres_transaction(session: AsyncSession) -> AsyncIterator[None]:
 
 @asynccontextmanager
 async def in_memory_transaction(
-    storages: Sequence[TransactionalInMemoryStorage[Any]]
+    storages: Sequence[TransactionalInMemoryStorage[Any]],
 ) -> AsyncIterator[None]:
     for storage in storages:
         storage.begin()
