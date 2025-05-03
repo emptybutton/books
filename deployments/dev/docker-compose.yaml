@@ -14,27 +14,9 @@ services:
     ports:
       - 8000:8000
     depends_on:
-      postgres:
+      keycloak:
         condition: service_healthy
-    environment:
-      JWT_SECRET: super-secret-jwt-secret
-      POSTGRES_URL: postgresql+psycopg://root:root@postgres/root
     command: books-fastapi-dev
-
-  postgres:
-    image: postgres:16.3-alpine3.19
-    container_name: books-postgres
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_DB: root
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: root
-    healthcheck:
-      test: pg_isready -d root -U root
-      start_period: 1m
-      start_interval: 1s
-      interval: 5s
 
   keycloak:
     image: keycloak/keycloak:26.2.2
@@ -43,18 +25,22 @@ services:
       KC_BOOTSTRAP_ADMIN_PASSWORD: root
       KC_BOOTSTRAP_ADMIN_USERNAME: root
       KC_HEALTH_ENABLED: true
+      KC_FEATURES: preview
     volumes:
       - keycloak-data:/opt/keycloak/data
-    command: start-dev
+      - ./keycloak:/mnt
+    entrypoint: [""]
+    command: bash /mnt/start.sh
     ports:
       - 8080:8080
+    healthcheck:
+      test: bash /mnt/healthcheck.sh
+      start_period: 5m
+      start_interval: 3s
+      interval: 10s
 
 volumes:
   backend-data: null
-
-  postgres-data:
-    labels:
-      db: true
 
   keycloak-data:
     labels:
