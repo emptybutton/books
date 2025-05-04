@@ -2,32 +2,22 @@ from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 from typing import Any
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from books.infrastructure.in_memory_storage import (
-    TransactionalInMemoryStorage,
-)
-
-
-@asynccontextmanager
-async def in_postgres_transaction(session: AsyncSession) -> AsyncIterator[None]:
-    async with session.begin():
-        yield
+from in_memory_db import InMemoryDb
 
 
 @asynccontextmanager
 async def in_memory_transaction(
-    storages: Sequence[TransactionalInMemoryStorage[Any]],
+    dbs: Sequence[InMemoryDb[Any]],
 ) -> AsyncIterator[None]:
-    for storage in storages:
-        storage.begin()
+    for db in dbs:
+        db.begin()
 
     try:
         yield
     except Exception as error:
-        for storage in storages:
-            storage.rollback()
+        for db in dbs:
+            db.rollback()
         raise error from error
     else:
-        for storage in storages:
-            storage.commit()
+        for db in dbs:
+            db.commit()
