@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 from effect import IdentifiedValue, New, new
 
 
-@dataclass(kw_only=True, frozen=True)
+@dataclass(frozen=True)
 class User(IdentifiedValue[UUID]):
     name: str
 
