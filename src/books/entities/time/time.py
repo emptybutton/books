@@ -7,7 +7,7 @@ from datetime import datetime as datetime_cls
 class NotUTCTimeError(Exception): ...
 
 
-@dataclass(kw_only=True, frozen=True)
+@dataclass(frozen=True)
 class Time:
     """
     :raises books.entities.time.time.NotUTCTimeError:
