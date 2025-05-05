@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
-from uuid import UUID
 
-from books.entities.core.user import User
+from books.entities.auth.user import User
 
 
 class Users(ABC):
     @abstractmethod
-    async def user_with_id(self, id: UUID) -> User | None: ...
+    async def user_with_name(self, name: str, /) -> User | None: ...
