@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from books.application.output.common import AccessTokenData
 from books.application.ports.access_token_signing import AccessTokenSigning
 from books.application.ports.clock import Clock
 from books.application.ports.map import Map
@@ -7,13 +8,6 @@ from books.application.ports.transaction import Transaction
 from books.application.ports.users import Users
 from books.entities.auth.password import Password, PasswordHashes
 from books.entities.auth.user import InvalidPasswordError, signed_in_user
-from books.entities.time.time import Time
-
-
-@dataclass(frozen=True)
-class Output[SignedAccessTokenT]:
-    signed_access_token: SignedAccessTokenT
-    signed_access_token_expiration_time: Time
 
 
 class FailedSigningInError(Exception): ...
@@ -32,7 +26,7 @@ class SignIn[SignedAccessTokenT]:
         self,
         user_name: str,
         password: str,
-    ) -> Output[SignedAccessTokenT]:
+    ) -> AccessTokenData[SignedAccessTokenT]:
         """
         :raises books.application.sign_in.FailedSigningInError:
         """
@@ -56,4 +50,6 @@ class SignIn[SignedAccessTokenT]:
         signed_access_token = await (
             self.access_token_signing.signed_access_token(access_token)
         )
-        return Output(signed_access_token, access_token.expriration_time)
+        return AccessTokenData(
+            signed_access_token, access_token.expriration_time
+        )

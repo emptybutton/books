@@ -1,15 +1,9 @@
 from dataclasses import dataclass
 
+from books.application.output.common import AccessTokenData
 from books.application.ports.access_token_signing import AccessTokenSigning
 from books.application.ports.clock import Clock
 from books.entities.auth.user import signed_out_user
-from books.entities.time.time import Time
-
-
-@dataclass(frozen=True)
-class AccessTokenData[SignedAccessTokenT]:
-    signed_access_token: SignedAccessTokenT
-    signed_access_token_expiration_time: Time
 
 
 type Output[SignedAccessTokenT] = AccessTokenData[SignedAccessTokenT] | None
