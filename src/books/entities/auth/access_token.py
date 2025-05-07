@@ -30,17 +30,20 @@ def invalid_access_token(
     return AccessToken(access_token.user_id, current_time)
 
 
-class ExpiredAccessTokenError(Exception): ...
+class AuthenticationError(Exception): ...
 
 
-def valid_access_token(
-    access_token: AccessToken, current_time: Time
+def authenticating_access_token(
+    access_token: AccessToken | None, current_time: Time
 ) -> AccessToken:
     """
-    :raises books.entities.auth.access_token.ExpiredAccessTokenError:
+    :raises books.entities.auth.access_token.AuthenticationError:
     """
 
-    if is_access_token_expired(access_token, current_time):
-        raise ExpiredAccessTokenError
+    if (
+        access_token is None
+        or is_access_token_expired(access_token, current_time)
+    ):
+        raise AuthenticationError
 
     return access_token

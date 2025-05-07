@@ -16,7 +16,10 @@ from effect import (
     new,
 )
 
-from books.entities.auth.access_token import AccessToken, valid_access_token
+from books.entities.auth.access_token import (
+    AccessToken,
+    authenticating_access_token,
+)
 from books.entities.core.book.chapter import (
     Chapter,
     ChapterIdentifiedEntity,
@@ -38,6 +41,9 @@ from books.entities.time.time import Time
 
 
 class NotUniqueChapterNumberError(Exception): ...
+
+
+class NoBookError(Exception): ...
 
 
 class NotAuthorError(Exception): ...
@@ -69,14 +75,18 @@ type BookIdentifiedEntity = Book | ChapterIdentifiedEntity
 
 
 def accessible_book_for_editing(
-    book: Book, access_token: AccessToken, current_time: Time
+    book: Book | None, access_token: AccessToken | None, current_time: Time
 ) -> Book:
     """
-    :raises books.entities.auth.access_token.ExpiredAccessTokenError:
+    :raises books.entities.auth.access_token.AuthenticationError:
+    :raises books.entities.core.book.book.NoBookError:
     :raises books.entities.core.book.book.NotAuthorError:
     """
 
-    access_token = valid_access_token(access_token, current_time)
+    access_token = authenticating_access_token(access_token, current_time)
+
+    if book is None:
+        raise NoBookError
 
     if access_token.user_id != book.author_id:
         raise NotAuthorError
@@ -89,13 +99,13 @@ def book_views(book: Book) -> Views:
 
 
 def new_book(
-    access_token: AccessToken, book_name: str, current_time: Time
+    access_token: AccessToken | None, book_name: str, current_time: Time
 ) -> New[Book]:
     """
-    :raises books.entities.auth.access_token.ExpiredAccessTokenError:
+    :raises books.entities.auth.access_token.AuthenticationError:
     """
 
-    access_token = valid_access_token(access_token, current_time)
+    access_token = authenticating_access_token(access_token, current_time)
 
     return new(Book(
         id=uuid4(),
@@ -107,12 +117,13 @@ def new_book(
 
 
 def deleted_book(
-    book: Book, access_token: AccessToken, current_time: Time
+    book: Book | None, access_token: AccessToken | None, current_time: Time
 ) -> Effect[
     None, Never, Never, Never, Book | Chapter | ChapterTextVersion
 ]:
     """
-    :raises books.entities.auth.access_token.ExpiredAccessTokenError:
+    :raises books.entities.auth.access_token.AuthenticationError:
+    :raises books.entities.core.book.book.NoBookError:
     :raises books.entities.core.book.book.NotAuthorError:
     """
 
@@ -126,14 +137,15 @@ def deleted_book(
 
 
 def book_with_new_chapter(
-    book: Book,
-    access_token: AccessToken,
+    book: Book | None,
+    access_token: AccessToken | None,
     chapter_number: ChapterNumber | None,
     chapter_text: str,
     current_time: Time,
 ) -> Effect[Book, Chapter | ChapterTextVersion, Never, Book]:
     """
-    :raises books.entities.auth.access_token.ExpiredAccessTokenError:
+    :raises books.entities.auth.access_token.AuthenticationError:
+    :raises books.entities.core.book.book.NoBookError:
     :raises books.entities.core.book.book.NotAuthorError:
     :raises books.entities.core.book.chapter.NotUniqueChapterNumberError:
     """
@@ -161,13 +173,14 @@ def book_with_new_chapter(
 
 
 def book_without_deleted_chapter(
-    book: Book,
-    access_token: AccessToken,
+    book: Book | None,
+    access_token: AccessToken | None,
     chapter_number: ChapterNumber,
     current_time: Time,
 ) -> Effect[Book, Never, Never, Book, Chapter]:
     """
-    :raises books.entities.auth.access_token.ExpiredAccessTokenError:
+    :raises books.entities.auth.access_token.AuthenticationError:
+    :raises books.entities.core.book.book.NoBookError:
     :raises books.entities.core.book.book.NotAuthorError:
     """
 
@@ -189,12 +202,16 @@ def book_without_deleted_chapter(
 
 
 def book_with_viewed_chapter(
-    book: Book,
+    book: Book | None,
     chapter_number: ChapterNumber
 ) -> Effect[Book, Never, Never, Chapter]:
     """
+    :raises books.entities.core.book.book.NoBookError:
     :raises books.entities.core.book.chapter.NoChapterError:
     """
+
+    if book is None:
+        raise NoBookError
 
     chapter_to_view = found_chapter(book, chapter_number)
 
@@ -212,14 +229,15 @@ def book_with_viewed_chapter(
 
 
 def book_with_edited_chapter(
-    book: Book,
-    access_token: AccessToken,
+    book: Book | None,
+    access_token: AccessToken | None,
     chapter_number: ChapterNumber,
     new_chapter_text: str,
     current_time: Time,
 ) -> Effect[Book, ChapterTextVersion, Never, Chapter | Book]:
     """
-    :raises books.entities.auth.access_token.ExpiredAccessTokenError:
+    :raises books.entities.auth.access_token.AuthenticationError:
+    :raises books.entities.core.book.book.NoBookError:
     :raises books.entities.core.book.book.NotAuthorError:
     :raises books.entities.core.book.chapter.NoChapterError:
     """
