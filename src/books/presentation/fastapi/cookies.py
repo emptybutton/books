@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime
 from typing import Annotated, Any, ClassVar
 
 from fastapi import Cookie as FastAPICookie
@@ -53,32 +53,34 @@ class CookieAnnotationKeeperType(type):
         return type_
 
 
-class TokenCookie:
-    key: ClassVar[str]
-
-    def __init__(self, response: Response) -> None:
-        self.response = response
-
-    def set(self, token: str) -> None:
-        self.response.set_cookie(
-            self.key,
-            token,
-            httponly=True,
-            max_age=int(timedelta(days=365 * 5).total_seconds()),
-        )
-
-    def clear(self) -> None:
-        self.response.delete_cookie(self.key)
-
-
-class UserIDCookie(
-    TokenCookie,
+class AccessTokenCookie(
     metaclass=CookieAnnotationKeeperType,
-    key="userId",
-    scheme_name="User id cookie",
-    description="Required for various operations. Obtained after registration.",
+    key="accessToken",
+    scheme_name="Access token cookie",
+    description=(
+        "Required for various commands."
+        " Obtained after signing in or signing up."
+    ),
 ):
     type StrOrNoneWithLock = str | None
     type StrWithLock = str
     type StrOrNone = str | None
     type Str = str
+
+    key: ClassVar[str]
+
+    def __init__(self, response: Response) -> None:
+        self.response = response
+
+    def set(self, token: str, expiration_datetime: datetime) -> None:
+        age_timedelta = expiration_datetime - datetime.now()
+
+        self.response.set_cookie(
+            self.key,
+            token,
+            httponly=True,
+            max_age=int(age_timedelta.total_seconds()),
+        )
+
+    def clear(self) -> None:
+        self.response.delete_cookie(self.key)

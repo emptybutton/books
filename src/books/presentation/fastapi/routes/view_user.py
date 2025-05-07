@@ -1,19 +1,14 @@
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel, Field
 
-from books.application.view_user import ViewUser
-from books.presentation.fastapi.cookies import UserIDCookie
+from books.application.view_current_user import ViewCurrentUser
+from books.presentation.fastapi.cookies import AccessTokenCookie
 from books.presentation.fastapi.schemas.output import UserSchema
 from books.presentation.fastapi.tags import Tag
 
 
 view_user_router = APIRouter()
-
-
-class RegisterUserSchema(BaseModel):
-    user_name: str = Field(alias="userName")
 
 
 @view_user_router.get(
@@ -28,13 +23,13 @@ class RegisterUserSchema(BaseModel):
 )
 @inject
 async def view_user_route(
-    view_user: FromDishka[ViewUser[str, UserSchema, UserSchema | None]],
-    signed_user_id: UserIDCookie.StrOrNone = None,
+    view_user: FromDishka[ViewCurrentUser[str, UserSchema | None]],
+    signed_access_token: AccessTokenCookie.StrOrNone = None,
 ) -> Response:
-    view = await view_user(signed_user_id=signed_user_id)
+    view = await view_user(signed_access_token)
 
     if view is None:
-        return Response(b"", status_code=status.HTTP_204_NO_CONTENT)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     response_body = view.model_dump(mode="json", by_alias=True)
     return JSONResponse(response_body)
