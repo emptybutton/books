@@ -47,7 +47,7 @@ class AccessTokenSigningToHS256JWT(AccessTokenSigning[JWT]):
         except pyjwt.DecodeError:
             return None
 
-        headers = jwt_data["headers"]
+        headers = jwt_data["header"]
         payload = jwt_data["payload"]
 
         user_id_hex: str | None = payload.get("id")

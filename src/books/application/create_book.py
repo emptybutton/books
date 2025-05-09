@@ -16,7 +16,7 @@ class CreateBook[SignedAccessTokenT]:
 
     async def __call__(
         self,
-        signed_access_token: SignedAccessTokenT,
+        signed_access_token: SignedAccessTokenT | None,
         book_name: str,
     ) -> None:
         """

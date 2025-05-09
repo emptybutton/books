@@ -1,49 +1,20 @@
-import asyncio
-from collections.abc import AsyncIterator, Coroutine, Iterable
-from contextlib import asynccontextmanager, suppress
-from typing import Any, cast
+from collections.abc import AsyncIterator, Iterable
+from contextlib import asynccontextmanager
 
 from dishka import AsyncContainer
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import APIRouter, FastAPI
-from fastapi.openapi.constants import REF_TEMPLATE
-from pydantic import BaseModel
 
 from books.presentation.fastapi.tags import tags_metadata
 
 
-type FastAPIAppCoroutines = Iterable[Coroutine[Any, Any, Any]]
 type FastAPIAppRouters = Iterable[APIRouter]
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    with suppress(asyncio.CancelledError):
-        async with asyncio.TaskGroup() as tasks:
-            for coroutine in cast("FastAPIAppCoroutines", app.state.coroutines):
-                tasks.create_task(coroutine)
-
-            yield
-
-            await app.state.dishka_container.close()
-            raise asyncio.CancelledError
-
-
-class _FastAPIWithAdditionalModels(FastAPI):
-    __additional_model_types: tuple[type[BaseModel], ...] = tuple()
-
-    def openapi(self) -> dict[str, Any]:
-        if self.openapi_schema is not None:
-            return self.openapi_schema
-
-        schema = super().openapi()
-
-        for model_type in self.__additional_model_types:
-            schema["components"]["schemas"][model_type.__name__] = (
-                model_type.model_json_schema(ref_template=REF_TEMPLATE)
-            )
-
-        return schema
+    yield
+    await app.state.dishka_container.close()
 
 
 async def app_from(container: AsyncContainer) -> FastAPI:
@@ -51,7 +22,7 @@ async def app_from(container: AsyncContainer) -> FastAPI:
     repo_url = f"{author_url}/books"
     version = "0.1.0"
 
-    app = _FastAPIWithAdditionalModels(
+    app = FastAPI(
         title="books",
         version=version,
         summary="Backend application for books.",
@@ -63,12 +34,10 @@ async def app_from(container: AsyncContainer) -> FastAPI:
         },
         lifespan=lifespan,
         root_path=f"/api/{version}",
+        docs_url="/",
     )
 
-    coroutines = await container.get(FastAPIAppCoroutines)
     routers = await container.get(FastAPIAppRouters)
-
-    app.state.coroutines = coroutines
 
     for router in routers:
         app.include_router(router)

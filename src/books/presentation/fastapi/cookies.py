@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated, Any, ClassVar
 
 from fastapi import Cookie as FastAPICookie
@@ -73,7 +73,7 @@ class AccessTokenCookie(
         self.response = response
 
     def set(self, token: str, expiration_datetime: datetime) -> None:
-        age_timedelta = expiration_datetime - datetime.now()
+        age_timedelta = expiration_datetime - datetime.now(UTC)
 
         self.response.set_cookie(
             self.key,

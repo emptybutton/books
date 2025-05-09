@@ -11,6 +11,8 @@ services:
     volumes:
       - ../..:/app
       - backend-data:/run/app
+    environment:
+      JWT_SECRET: super-secret-jwt-secret
     ports:
       - 8000:8000
     command: books-fastapi-dev

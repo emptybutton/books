@@ -1,71 +1,78 @@
-from collections.abc import AsyncIterator
-
 from dishka import AnyOf, Provider, Scope, provide
-from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
-    AsyncSession,
-    create_async_engine,
-)
+from in_memory_db import InMemoryDb
 
+from books.application.create_book import CreateBook
+from books.application.create_chapter import CreateChapter
+from books.application.delete_book import DeleteBook
+from books.application.delete_chapter import DeleteChapter
+from books.application.edit_chapter import EditChapter
+from books.application.ports.access_token_signing import AccessTokenSigning
+from books.application.ports.book_views import BookViews
+from books.application.ports.books import Books
 from books.application.ports.clock import Clock
 from books.application.ports.map import Map
 from books.application.ports.transaction import Transaction
-from books.application.ports.user_id_signing import (
-    UserIDSigning,
-)
 from books.application.ports.user_views import UserViews
 from books.application.ports.users import Users
-from books.application.register_user import RegisterUser
-from books.application.view_user import ViewUser
+from books.application.sign_in import SignIn
+from books.application.sign_out import SignOut
+from books.application.sign_up import SignUp
+from books.application.view_book_with_name import ViewBookWithName
+from books.application.view_chapter import ViewChapter
+from books.application.view_current_user import ViewCurrentUser
+from books.application.view_user_with_name import ViewUserWithName
+from books.entities.auth.password import PasswordHashes
+from books.infrastructure.adapters.access_token_signing import (
+    AccessTokenSigningToHS256JWT,
+)
+from books.infrastructure.adapters.books import InMemoryDbBooks
 from books.infrastructure.adapters.clock import LocalHostClock
-from books.infrastructure.adapters.map import MapToPostgres
-from books.infrastructure.adapters.transaction import (
-    in_postgres_transaction,
+from books.infrastructure.adapters.map import MapToInMemoryDb
+from books.infrastructure.adapters.password_hashes import (
+    Pbkdf2HmacPasswordHashes,
 )
-from books.infrastructure.adapters.user_id_signing import (
-    UserIDSigningToHS256JWT,
-)
-from books.infrastructure.adapters.users import InPostgresUsers
-from books.infrastructure.alias import JWT
+from books.infrastructure.adapters.transaction import in_memory_db_transaction
+from books.infrastructure.adapters.users import InMemoryDbUsers
 from books.infrastructure.typenv.envs import Envs
-from books.presentation.adapters.user_views import (
-    UserSchemasFromPostgres,
+from books.presentation.adapters.book_views import (
+    BookSchemasAndChapterSchemasFromInMemoryDbAsBookViews,
 )
-from books.presentation.fastapi.schemas.output import UserSchema
+from books.presentation.adapters.user_views import (
+    UserSchemasFromInMemoryDbAsUserViews,
+)
+from books.presentation.fastapi.schemas.output import (
+    BookSchema,
+    ChapterSchema,
+    UserSchema,
+)
 
 
 class CommonProvider(Provider):
     provide_envs = provide(source=Envs.load, scope=Scope.APP)
 
     @provide(scope=Scope.APP)
-    async def provide_postgres_engine(self, envs: Envs) -> AsyncEngine:
-        return create_async_engine(envs.postgres_url)
-
-    @provide(scope=Scope.REQUEST)
-    async def provide_postgres_session(
-        self, engine: AsyncEngine
-    ) -> AsyncIterator[AsyncSession]:
-        session = AsyncSession(
-            engine,
-            autoflush=False,
-            expire_on_commit=False,
-            autobegin=False,
-        )
-
-        async with session:
-            yield session
+    def provide_db(self) -> InMemoryDb:
+        db = InMemoryDb()
+        db._snapshots = list()
+        return db
 
     @provide(scope=Scope.APP)
-    def provide_user_id_signing(
+    def provide_access_token_signing(
         self, envs: Envs
-    ) -> AnyOf[UserIDSigningToHS256JWT, UserIDSigning[JWT]]:
-        return UserIDSigningToHS256JWT(secret=envs.jwt_secret)
+    ) -> AnyOf[AccessTokenSigningToHS256JWT, AccessTokenSigning[str]]:
+        return AccessTokenSigningToHS256JWT(secret=envs.jwt_secret)
 
-    @provide(scope=Scope.REQUEST)
-    def provide_users(
-        self, session: AsyncSession
-    ) -> AnyOf[InPostgresUsers, Users]:
-        return InPostgresUsers(session=session)
+    provide_books = provide(
+        InMemoryDbBooks,
+        provides=AnyOf[InMemoryDbBooks, Books],
+        scope=Scope.APP,
+    )
+
+    provide_users = provide(
+        InMemoryDbUsers,
+        provides=AnyOf[InMemoryDbUsers, Users],
+        scope=Scope.APP,
+    )
 
     provide_clock = provide(
         LocalHostClock,
@@ -74,30 +81,61 @@ class CommonProvider(Provider):
     )
 
     provide_map = provide(
-        MapToPostgres,
-        provides=AnyOf[Map, MapToPostgres],
-        scope=Scope.REQUEST,
+        MapToInMemoryDb,
+        provides=AnyOf[Map, MapToInMemoryDb],
+        scope=Scope.APP,
     )
 
     @provide(scope=Scope.REQUEST)
-    def provide_transaction(self, session: AsyncSession) -> Transaction:
-        return in_postgres_transaction(session=session)
+    def provide_transaction(self, db: InMemoryDb) -> Transaction:
+        return in_memory_db_transaction([db])
 
     provide_user_views = provide(
-        UserSchemasFromPostgres,
+        UserSchemasFromInMemoryDbAsUserViews,
         provides=AnyOf[
-            UserViews[UserSchema, UserSchema | None], UserSchemasFromPostgres
+            UserSchemasFromInMemoryDbAsUserViews, UserViews[UserSchema | None]
         ],
-        scope=Scope.REQUEST,
+        scope=Scope.APP,
     )
 
-    provide_register_user = provide(
-        RegisterUser[JWT, UserSchema, UserSchema | None],
-        provides=RegisterUser[str, UserSchema, UserSchema | None],
+    provide_book_views = provide(
+        BookSchemasAndChapterSchemasFromInMemoryDbAsBookViews,
+        provides=AnyOf[
+            BookSchemasAndChapterSchemasFromInMemoryDbAsBookViews,
+            BookViews[BookSchema | None, ChapterSchema | None],
+        ],
+        scope=Scope.APP,
+    )
+
+    @provide(scope=Scope.APP)
+    def provide_password_hashes(self) -> AnyOf[
+        Pbkdf2HmacPasswordHashes, PasswordHashes
+    ]:
+        return Pbkdf2HmacPasswordHashes(
+            salt_lenght=32, iterations=10_000, hash_lenght=128
+        )
+
+    provide_create_book = provide(CreateBook[str], scope=Scope.REQUEST)
+    provide_create_chapter = provide(CreateChapter[str], scope=Scope.REQUEST)
+    provide_delete_book = provide(DeleteBook[str], scope=Scope.REQUEST)
+    provide_delete_chapter = provide(DeleteChapter[str], scope=Scope.REQUEST)
+    provide_edit_chapter = provide(EditChapter[str], scope=Scope.REQUEST)
+    provide_sign_in = provide(SignIn[str], scope=Scope.REQUEST)
+    provide_sign_out = provide(SignOut[str], scope=Scope.REQUEST)
+    provide_sign_up = provide(SignUp[str], scope=Scope.REQUEST)
+    provide_view_book_with_name = provide(
+        ViewBookWithName[BookSchema | None, ChapterSchema | None],
         scope=Scope.REQUEST,
     )
-    provide_view_user = provide(
-        ViewUser[JWT, UserSchema, UserSchema | None],
-        provides=ViewUser[str, UserSchema, UserSchema | None],
+    provide_view_chapter = provide(
+        ViewChapter[BookSchema | None, ChapterSchema | None],
+        scope=Scope.REQUEST,
+    )
+    provide_view_current_user = provide(
+        ViewCurrentUser[str, UserSchema | None],
+        scope=Scope.REQUEST,
+    )
+    provide_view_user_with_name = provide(
+        ViewUserWithName[str, UserSchema | None],
         scope=Scope.REQUEST,
     )

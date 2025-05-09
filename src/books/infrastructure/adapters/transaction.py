@@ -6,7 +6,7 @@ from in_memory_db import InMemoryDb
 
 
 @asynccontextmanager
-async def in_memory_transaction(
+async def in_memory_db_transaction(
     dbs: Sequence[InMemoryDb[Any]],
 ) -> AsyncIterator[None]:
     for db in dbs:

@@ -9,6 +9,7 @@ healthcheck_router = APIRouter()
 
 @healthcheck_router.get(
     "/health",
+    status_code=status.HTTP_204_NO_CONTENT,
     responses={status.HTTP_204_NO_CONTENT: {}},
     description="Checking if the server can accept requests.",
     tags=[Tag.monitoring],

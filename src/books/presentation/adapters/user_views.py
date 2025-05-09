@@ -5,7 +5,11 @@ from in_memory_db import InMemoryDb
 
 from books.application.ports.user_views import UserViews
 from books.entities.auth.user import User
-from books.presentation.fastapi.schemas.output import UserSchema
+from books.entities.core.book.book import Book
+from books.presentation.fastapi.schemas.output import (
+    SimpleBookSchema,
+    UserSchema,
+)
 
 
 @dataclass(frozen=True)
@@ -40,4 +44,9 @@ class UserSchemasFromInMemoryDbAsUserViews(UserViews[UserSchema | None]):
         return self._user_schema(user)
 
     def _user_schema(self, user: User) -> UserSchema:
-        return UserSchema(name=user.name)
+        books = self.db.subset(Book).select_many(
+            lambda it: it.author_id == user.id
+        )
+        book_names = tuple(SimpleBookSchema(name=book.name) for book in books)
+
+        return UserSchema(name=user.name, writtenBooks=book_names)

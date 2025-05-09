@@ -11,5 +11,5 @@ class AccessTokenSigning[SignedAccessTokenT](ABC):
 
     @abstractmethod
     async def access_token(
-        self, signed_access_token: SignedAccessTokenT, /
+        self, signed_access_token: SignedAccessTokenT | None, /
     ) -> AccessToken | None: ...

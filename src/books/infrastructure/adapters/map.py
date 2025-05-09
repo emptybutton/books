@@ -50,7 +50,7 @@ class MapToInMemoryDb(Map):
             user.name for user in self.in_memory_db.subset(User)
         )
 
-        if max(user_name_counter.values()) > 1:
+        if max(user_name_counter.values(), default=0) > 1:
             raise NotUniqueUserNameError
 
     def _validate_book_name_uniqueness(self) -> None:
@@ -58,5 +58,5 @@ class MapToInMemoryDb(Map):
             book.name for book in self.in_memory_db.subset(Book)
         )
 
-        if max(book_name_counter.values()) > 1:
+        if max(book_name_counter.values(), default=0) > 1:
             raise NotUniqueBookNameError

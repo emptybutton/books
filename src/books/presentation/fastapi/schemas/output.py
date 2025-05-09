@@ -4,8 +4,13 @@ from typing import Literal
 from pydantic import BaseModel, Field, PositiveInt
 
 
+class SimpleBookSchema(BaseModel):
+    name: str
+
+
 class UserSchema(BaseModel):
     name: str
+    written_books: tuple[SimpleBookSchema, ...] = Field(alias="writtenBooks")
 
 
 class ChapterTextVersionSchema(BaseModel):

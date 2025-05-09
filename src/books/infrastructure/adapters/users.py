@@ -7,7 +7,7 @@ from books.entities.auth.user import User
 
 
 @dataclass(frozen=True)
-class InMemoryUsers(Users):
+class InMemoryDbUsers(Users):
     db: InMemoryDb
 
     async def user_with_name(self, name: str) -> User | None:

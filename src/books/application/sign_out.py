@@ -15,11 +15,8 @@ class SignOut[SignedAccessTokenT]:
     access_token_signing: AccessTokenSigning[SignedAccessTokenT]
 
     async def __call__(
-        self, signed_access_token: SignedAccessTokenT
+        self, signed_access_token: SignedAccessTokenT | None
     ) -> Output[SignedAccessTokenT]:
-        if signed_access_token is None:
-            return None
-
         access_token = await self.access_token_signing.access_token(
             signed_access_token
         )

@@ -5,10 +5,7 @@ from pydantic import BaseModel, Field
 
 from books.application.sign_in import FailedSigningInError, SignIn
 from books.presentation.fastapi.cookies import AccessTokenCookie
-from books.presentation.fastapi.schemas.output import (
-    FailedSigningInSchema,
-    NotUniqueUserNameSchema,
-)
+from books.presentation.fastapi.schemas.output import FailedSigningInSchema
 from books.presentation.fastapi.tags import Tag
 
 
@@ -21,14 +18,15 @@ class SignInSchema(BaseModel):
 
 
 @sign_in_router.put(
-    "/users",
+    "/users/me",
+    status_code=status.HTTP_204_NO_CONTENT,
     responses={
         status.HTTP_204_NO_CONTENT: {},
-        status.HTTP_400_BAD_REQUEST: {"model": NotUniqueUserNameSchema},
+        status.HTTP_400_BAD_REQUEST: {"model": FailedSigningInSchema},
     },
     summary="Sign in",
     description="Sign in as a current user.",
-    tags=[Tag.user],
+    tags=[Tag.current_user, Tag.user],
 )
 @inject
 async def sign_in_route(
@@ -43,7 +41,7 @@ async def sign_in_route(
         )
         return JSONResponse(response_body, status.HTTP_400_BAD_REQUEST)
 
-    response = Response({}, status_code=status.HTTP_204_NO_CONTENT)
+    response = Response(status_code=status.HTTP_204_NO_CONTENT)
 
     cookie = AccessTokenCookie(response)
     cookie.set(

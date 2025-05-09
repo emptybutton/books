@@ -8,7 +8,7 @@ from books.infrastructure.book_loading import loaded_book_from_in_memory_db
 
 
 @dataclass(frozen=True)
-class InMemoryBooks(Books):
+class InMemoryDbBooks(Books):
     db: InMemoryDb
 
     async def book_with_name(self, name: str, /) -> Book | None:

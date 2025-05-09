@@ -5,7 +5,7 @@ from books.application.ports.transaction import Transaction
 
 
 @dataclass(frozen=True)
-class ViewBook[BookViewT, BookChapterViewT]:
+class ViewBookWithName[BookViewT, BookChapterViewT]:
     book_views: BookViews[BookViewT, BookChapterViewT]
     transaction: Transaction
 

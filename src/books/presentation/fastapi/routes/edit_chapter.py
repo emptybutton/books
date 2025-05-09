@@ -1,24 +1,25 @@
-from dishka.integrations.fastapi import FromDishka, inject
-from fastapi import APIRouter, status
-from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel, Field
+from typing import Annotated
 
+from dishka.integrations.fastapi import FromDishka, inject
+from fastapi import APIRouter, Query, status
+from fastapi.responses import JSONResponse, Response
+from pydantic import BaseModel, Field, PositiveInt
+
+from books.application.edit_chapter import EditChapter
 from books.application.ports.map import NotUniqueUserNameError
-from books.application.sign_up import SignUp
 from books.presentation.fastapi.cookies import AccessTokenCookie
 from books.presentation.fastapi.schemas.output import NotUniqueUserNameSchema
 from books.presentation.fastapi.tags import Tag
 
 
-sign_up_router = APIRouter()
+edit_chapter_router = APIRouter()
 
 
-class SignUpSchema(BaseModel):
-    user_name: str = Field(alias="userName")
-    password: str
+class EditChapterSchema(BaseModel):
+    new_chapter_text: str = Field(alias="newChapterText")
 
 
-@sign_up_router.post(
+@edit_chapter_router.post(
     "/users/me",
     status_code=status.HTTP_201_CREATED,
     responses={
@@ -30,12 +31,20 @@ class SignUpSchema(BaseModel):
     tags=[Tag.current_user, Tag.user],
 )
 @inject
-async def sign_up_route(
-    sign_up: FromDishka[SignUp[str]],
-    request_body: SignUpSchema,
+async def edit_chapter_route(
+    edit_chapter: FromDishka[EditChapter[str]],
+    request_body: EditChapterSchema,
+    book_name: Annotated[str, Query(alias="bookName")],
+    chapter_number_int: Annotated[PositiveInt, Query(alias="chapterNumber")],
+    signed_access_token: AccessTokenCookie.StrOrNoneWithLock,
 ) -> Response:
     try:
-        result = await sign_up(request_body.user_name, request_body.password)
+        result = await edit_chapter(
+            signed_access_token,
+            book_name,
+            chapter_number_int,
+            request_body.new_chapter_text,
+        )
     except NotUniqueUserNameError:
         response_body = NotUniqueUserNameSchema().model_dump(
             mode="json", by_alias=True
