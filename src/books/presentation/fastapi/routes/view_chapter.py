@@ -26,10 +26,11 @@ view_chapter_router = APIRouter()
     },
     summary="View chapter",
     description=(
-        "View chapter with its number and book name."
+        "View chapter."
         " If there is no book with an input name"
         " or chapter with an input number,"
         " the response body will be empty."
+        " As a positive result, it increases chapter views."
     ),
     tags=[Tag.chapter],
 )

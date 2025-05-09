@@ -5,7 +5,7 @@ from books.application.ports.clock import Clock
 from books.entities.time.time import Time
 
 
-@dataclass(kw_only=True, frozen=True, slots=True)
+@dataclass(frozen=True)
 class StoppedClock(Clock):
     current_time: Time
 
@@ -13,7 +13,7 @@ class StoppedClock(Clock):
         return self.current_time
 
 
-@dataclass(kw_only=True, frozen=True, slots=True)
+@dataclass(frozen=True)
 class LocalHostClock(Clock):
     async def get_current_time(self) -> Time:
         return Time(datetime=datetime.now(UTC))

@@ -74,6 +74,7 @@ class BookSchemasAndChapterSchemasFromInMemoryDbAsBookViews(
             authorName=author.name,
             chapterNumbers=tuple(sorted(chapter_numbers)),
             lastModificationTime=book.last_modification_time.datetime,
+            creationTime=book.creation_time.datetime,
             views=book_views(book).int,
         )
 
@@ -103,4 +104,5 @@ class BookSchemasAndChapterSchemasFromInMemoryDbAsBookViews(
             textVersions=text_version_schemas,
             views=chapter.views.int,
             lastModificationTime=chapter.last_modification_time.datetime,
+            creationTime=chapter.creation_time.datetime,
         )

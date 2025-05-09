@@ -20,6 +20,7 @@ def loaded_book_from_in_memory_db(db: InMemoryDb, book: Book) -> Book:
         name=book.name,
         chapters=loaded_chapters,
         last_modification_time=book.last_modification_time,
+        creation_time=book.creation_time,
     )
 
 
@@ -35,6 +36,7 @@ def loaded_chapter_from_in_memory_db(
         book_id=chapter.book_id,
         number=chapter.number,
         last_modification_time=chapter.last_modification_time,
+        creation_time=chapter.creation_time,
         text_versions=loaded_text_versions,
         views=chapter.views,
     )

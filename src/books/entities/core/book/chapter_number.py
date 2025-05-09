@@ -21,6 +21,10 @@ class ChapterNumber:
 def default_next_chapter_number(
     chapters_numbers: Iterable[ChapterNumber]
 ) -> ChapterNumber:
+    chapters_number_ints = (
+        chapters_number.int for chapters_number in chapters_numbers
+    )
+
     return ChapterNumber(
-        max(chapters_number.int for chapters_number in chapters_numbers) + 1
+        max(chapters_number_ints, default=0) + 1
     )

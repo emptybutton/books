@@ -1,9 +1,9 @@
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, status
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
-from books.application.sign_in import FailedSigningInError, SignIn
+from books.application.sign_in import SignIn
 from books.presentation.fastapi.cookies import AccessTokenCookie
 from books.presentation.fastapi.schemas.output import FailedSigningInSchema
 from books.presentation.fastapi.tags import Tag
@@ -33,13 +33,7 @@ async def sign_in_route(
     sign_in: FromDishka[SignIn[str]],
     request_body: SignInSchema,
 ) -> Response:
-    try:
-        result = await sign_in(request_body.user_name, request_body.password)
-    except FailedSigningInError:
-        response_body = FailedSigningInSchema().model_dump(
-            mode="json", by_alias=True
-        )
-        return JSONResponse(response_body, status.HTTP_400_BAD_REQUEST)
+    result = await sign_in(request_body.user_name, request_body.password)
 
     response = Response(status_code=status.HTTP_204_NO_CONTENT)
 

@@ -1,9 +1,8 @@
 from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import APIRouter, status
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
-from books.application.ports.map import NotUniqueUserNameError
 from books.application.sign_up import SignUp
 from books.presentation.fastapi.cookies import AccessTokenCookie
 from books.presentation.fastapi.schemas.output import NotUniqueUserNameSchema
@@ -22,7 +21,7 @@ class SignUpSchema(BaseModel):
     "/users/me",
     status_code=status.HTTP_201_CREATED,
     responses={
-        status.HTTP_201_CREATED: {"model": BaseModel},
+        status.HTTP_201_CREATED: {"content": None},
         status.HTTP_409_CONFLICT: {"model": NotUniqueUserNameSchema},
     },
     summary="Sign up",
@@ -34,15 +33,9 @@ async def sign_up_route(
     sign_up: FromDishka[SignUp[str]],
     request_body: SignUpSchema,
 ) -> Response:
-    try:
-        result = await sign_up(request_body.user_name, request_body.password)
-    except NotUniqueUserNameError:
-        response_body = NotUniqueUserNameSchema().model_dump(
-            mode="json", by_alias=True
-        )
-        return JSONResponse(response_body, status_code=status.HTTP_409_CONFLICT)
+    result = await sign_up(request_body.user_name, request_body.password)
 
-    response = JSONResponse({}, status_code=status.HTTP_201_CREATED)
+    response = Response(status_code=status.HTTP_201_CREATED)
 
     cookie = AccessTokenCookie(response)
     cookie.set(

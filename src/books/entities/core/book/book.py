@@ -55,6 +55,7 @@ class Book(IdentifiedValue[UUID]):
     name: str
     chapters: tuple[Chapter, ...]
     last_modification_time: Time
+    creation_time: Time
 
     def __post_init__(self) -> None:
         """
@@ -64,7 +65,7 @@ class Book(IdentifiedValue[UUID]):
         chapter_number_counter = Counter(
             chapter.number for chapter in self.chapters
         )
-        if max(chapter_number_counter.values()) > 1:
+        if max(chapter_number_counter.values(), default=0) > 1:
             raise NotUniqueChapterNumberError
 
     def __iter__(self) -> Iterator[Chapter]:
@@ -113,6 +114,7 @@ def new_book(
         name=book_name,
         chapters=tuple(),
         last_modification_time=current_time,
+        creation_time=current_time,
     ))
 
 
@@ -167,6 +169,7 @@ def book_with_new_chapter(
         author_id=book.id,
         chapters=(*book, just(new_chapter_)),
         last_modification_time=current_time,
+        creation_time=book.creation_time,
     ))
 
     return new_chapter_ & book_with_new_chapter_
@@ -182,6 +185,7 @@ def book_without_deleted_chapter(
     :raises books.entities.auth.access_token.AuthenticationError:
     :raises books.entities.core.book.book.NoBookError:
     :raises books.entities.core.book.book.NotAuthorError:
+    :raises books.entities.core.book.chapter.NoChapterError:
     """
 
     book = accessible_book_for_editing(book, access_token, current_time)
@@ -196,6 +200,7 @@ def book_without_deleted_chapter(
             chapter for chapter in book if chapter.is_(just(deleted_chapter))
         ),
         last_modification_time=current_time,
+        creation_time=book.creation_time,
     ))
 
     return deleted_chapter & book_without_deleted_chapter_
@@ -223,6 +228,7 @@ def book_with_viewed_chapter(
         author_id=book.author_id,
         chapters=(*book.chapters, just(viewed_chapter_)),
         last_modification_time=book.last_modification_time,
+        creation_time=book.creation_time,
     ))
 
     return viewed_chapter_ & book_with_viewed_chapter_
@@ -255,6 +261,7 @@ def book_with_edited_chapter(
         author_id=book.author_id,
         chapters=(*book.chapters, just(edited_chapter_)),
         last_modification_time=current_time,
+        creation_time=book.creation_time,
     ))
 
     return edited_chapter_ & book_with_edited_chapter_

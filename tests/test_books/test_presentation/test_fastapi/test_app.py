@@ -7,7 +7,6 @@ from fastapi.responses import JSONResponse, Response
 from httpx import ASGITransport, AsyncClient
 
 from books.presentation.fastapi.app import (
-    FastAPIAppCoroutines,
     FastAPIAppRouters,
     app_from,
 )
@@ -31,7 +30,6 @@ async def test_app_from() -> None:
     provider = Provider(scope=Scope.APP)
     provider.provide(lambda: X(x=4), provides=X)
     provider.provide(lambda: [router], provides=FastAPIAppRouters)
-    provider.provide(lambda: [], provides=FastAPIAppCoroutines)
     container = make_async_container(provider)
 
     app = await app_from(container)

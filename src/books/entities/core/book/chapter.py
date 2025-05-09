@@ -35,6 +35,7 @@ class Chapter(IdentifiedValue[UUID]):
     book_id: UUID
     number: ChapterNumber
     last_modification_time: Time
+    creation_time: Time
     text_versions: tuple[ChapterTextVersion, ...]
     views: Views
 
@@ -66,12 +67,13 @@ def new_chapter(
         new_chapter_id, chapter_text
     )
     new_chapter = new(Chapter(
-        new_chapter_id,
-        book_id,
-        chapter_number,
-        current_time,
-        (just(new_chapter_text_version),),
-        no_views,
+        id=new_chapter_id,
+        book_id=book_id,
+        number=chapter_number,
+        last_modification_time=current_time,
+        creation_time=current_time,
+        text_versions=(just(new_chapter_text_version),),
+        views=no_views,
     ))
 
     return new_chapter_text_version & new_chapter
@@ -93,6 +95,7 @@ def viewed_chapter(chapter: Chapter) -> Mutated[Chapter]:
         book_id=chapter.book_id,
         number=chapter.number,
         last_modification_time=chapter.last_modification_time,
+        creation_time=chapter.creation_time,
         text_versions=chapter.text_versions,
         views=increased_views(chapter.views),
     ))
@@ -113,6 +116,7 @@ def edited_chapter(
         book_id=chapter.book_id,
         number=chapter.number,
         last_modification_time=current_time,
+        creation_time=chapter.creation_time,
         text_versions=(
             *chapter.text_versions, just(new_chapter_text_version)
         ),

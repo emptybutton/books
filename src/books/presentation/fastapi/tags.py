@@ -12,6 +12,10 @@ class Tag(Enum):
 
 tags_metadata = [
     {
+        "name": Tag.monitoring.value,
+        "description": "Monitoring endpoints.",
+    },
+    {
         "name": Tag.current_user.value,
         "description": "Current user endpoints.",
     },
@@ -30,9 +34,5 @@ tags_metadata = [
     {
         "name": Tag.chapter.value,
         "description": "Book chapter endpoints.",
-    },
-    {
-        "name": Tag.monitoring.value,
-        "description": "Monitoring endpoints.",
     },
 ]

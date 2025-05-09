@@ -28,6 +28,7 @@ class DeleteChapter[SignedAccessTokenT]:
         :raises books.entities.auth.access_token.AuthenticationError:
         :raises books.entities.core.book.book.NoBookError:
         :raises books.entities.core.book.book.NotAuthorError:
+        :raises books.entities.core.book.chapter.NoChapterError:
         """  # noqa: E501
 
         current_time = await self.clock.get_current_time()

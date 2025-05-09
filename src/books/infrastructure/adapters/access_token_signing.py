@@ -38,7 +38,10 @@ class AccessTokenSigningToHS256JWT(AccessTokenSigning[JWT]):
             key=self.secret,
         )
 
-    async def access_token(self, jwt: JWT) -> AccessToken | None:
+    async def access_token(self, jwt: JWT | None) -> AccessToken | None:
+        if jwt is None:
+            return None
+
         try:
             jwt_data: dict[str, Any]
             jwt_data = pyjwt.decode_complete(

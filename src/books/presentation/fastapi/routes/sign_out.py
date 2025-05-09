@@ -24,7 +24,7 @@ sign_out_router = APIRouter()
 @inject
 async def sign_out_route(
     sign_out: FromDishka[SignOut[str]],
-    signed_access_token: AccessTokenCookie.StrOrNone,
+    signed_access_token: AccessTokenCookie.StrOrNone = None,
 ) -> Response:
     result = await sign_out(signed_access_token)
 

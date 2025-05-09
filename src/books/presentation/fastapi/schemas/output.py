@@ -24,7 +24,8 @@ class ChapterSchema(BaseModel):
         alias="textVersions"
     )
     last_modification_time: datetime = Field(alias="lastModificationTime")
-    views: PositiveInt
+    creation_time: datetime = Field(alias="creationTime")
+    views: int = Field(ge=0)
 
 
 class BookSchema(BaseModel):
@@ -32,7 +33,8 @@ class BookSchema(BaseModel):
     author_name: str = Field(alias="authorName")
     chapter_numbers: tuple[PositiveInt, ...] = Field(alias="chapterNumbers")
     last_modification_time: datetime = Field(alias="lastModificationTime")
-    views: PositiveInt
+    creation_time: datetime = Field(alias="creationTime")
+    views: int = Field(ge=0)
 
 
 class FailedAuthenticationSchema(BaseModel):
@@ -41,6 +43,10 @@ class FailedAuthenticationSchema(BaseModel):
 
 class NoBookSchema(BaseModel):
     type: Literal["noBook"] = "noBook"
+
+
+class NoChapterSchema(BaseModel):
+    type: Literal["noChapter"] = "noChapter"
 
 
 class NotAuthorSchema(BaseModel):

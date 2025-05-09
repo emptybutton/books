@@ -5,6 +5,7 @@ from dishka import AsyncContainer
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import APIRouter, FastAPI
 
+from books.presentation.fastapi.error_handling import add_error_handling
 from books.presentation.fastapi.tags import tags_metadata
 
 
@@ -43,5 +44,6 @@ async def app_from(container: AsyncContainer) -> FastAPI:
         app.include_router(router)
 
     setup_dishka(container=container, app=app)
+    add_error_handling(app)
 
     return app

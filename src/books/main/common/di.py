@@ -1,5 +1,6 @@
 from dishka import AnyOf, Provider, Scope, provide
 from in_memory_db import InMemoryDb
+from in_memory_db.db import InMemoryDbAsyncTransactionOrchestrator
 
 from books.application.create_book import CreateBook
 from books.application.create_chapter import CreateChapter
@@ -31,7 +32,6 @@ from books.infrastructure.adapters.map import MapToInMemoryDb
 from books.infrastructure.adapters.password_hashes import (
     Pbkdf2HmacPasswordHashes,
 )
-from books.infrastructure.adapters.transaction import in_memory_db_transaction
 from books.infrastructure.adapters.users import InMemoryDbUsers
 from books.infrastructure.typenv.envs import Envs
 from books.presentation.adapters.book_views import (
@@ -52,9 +52,7 @@ class CommonProvider(Provider):
 
     @provide(scope=Scope.APP)
     def provide_db(self) -> InMemoryDb:
-        db = InMemoryDb()
-        db._snapshots = list()
-        return db
+        return InMemoryDb()
 
     @provide(scope=Scope.APP)
     def provide_access_token_signing(
@@ -86,9 +84,16 @@ class CommonProvider(Provider):
         scope=Scope.APP,
     )
 
+    provide_in_memory_db_async_transaction_orchestrator = provide(
+        InMemoryDbAsyncTransactionOrchestrator,
+        scope=Scope.APP,
+    )
+
     @provide(scope=Scope.REQUEST)
-    def provide_transaction(self, db: InMemoryDb) -> Transaction:
-        return in_memory_db_transaction([db])
+    def provide_transaction(
+        self, orchestrator: InMemoryDbAsyncTransactionOrchestrator
+    ) -> Transaction:
+        return orchestrator.transaction()
 
     provide_user_views = provide(
         UserSchemasFromInMemoryDbAsUserViews,
