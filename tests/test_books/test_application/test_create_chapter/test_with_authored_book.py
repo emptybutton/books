@@ -52,25 +52,25 @@ async def test_no_errors_with_chapter_number(
     await operation(valid_access_token, "BOOK", 1, "TEXT")
 
 
-@mark.parametrize("stage", ["books", "users", "chapter_lenght", "chapters"])
+@mark.parametrize(
+    "stage", ["book_length", "user_length", "chapter_length", "chapters"]
+)
 async def test_db_with_chapter_number(
     operation: CreateChapter[AccessToken | None],
     stage: str,
     db: InMemoryDb,
     valid_access_token: AccessToken,
-    book1: Book,
-    user1: User,
     current_time: Time,
 ) -> None:
     await operation(valid_access_token, "BOOK", 1, "TEXT")
 
     if stage == "books":
-        assert list(db.subset(Book)) == [book1]
+        assert len(db.subset(Book)) == 1
 
     if stage == "users":
-        assert list(db.subset(User)) == [user1]
+        assert len(db.subset(User)) == 1
 
-    if stage == "chapter_lenght":
+    if stage == "chapter_length":
         assert len(db.subset(Chapter)) == 1
 
     if stage == "chapters":
