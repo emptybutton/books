@@ -174,3 +174,5 @@ cython_debug/
 .python-version
 .ruff_cache
 .uv_cache
+tg_secrets.toml
+dev.session

@@ -13,6 +13,8 @@ services:
       - backend-data:/run/app
     environment:
       JWT_SECRET: super-secret-jwt-secret
+      JWT_SECRET: super-secret-jwt-secret
+      TELEGRAM_SECRETS_FILE_PATH: /app/deployments/dev/backend/tg_secrets.toml
     ports:
       - 8000:8000
     command: books-fastapi-dev
