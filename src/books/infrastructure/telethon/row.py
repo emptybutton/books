@@ -1,21 +1,23 @@
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
-from datetime import datetime
-from enum import StrEnum
 from typing import Any, cast, overload
-from urllib import parse
-from uuid import UUID
 
 from effect import IdentifiedValue, LifeCycle
 
+from books.infrastructure.telethon.primitive import (
+    Primitive,
+    decoded_primitive,
+    encoded_primitive,
+)
 
-type RowAttribute = bool | int | str | datetime | UUID | StrEnum
+
+type RowAttribute = Primitive
 
 
 @dataclass(frozen=True)
-class RowSchema[IdT: RowAttribute = RowAttribute](Sequence[type[RowAttribute]]):
+class RowSchema(Sequence[type[RowAttribute]]):
     name: str
-    id_type: type[IdT]
+    id_type: type[RowAttribute]
     body_types: tuple[type[RowAttribute], ...]
 
     def __iter__(self) -> Iterator[type[RowAttribute]]:
@@ -39,18 +41,16 @@ class RowSchema[IdT: RowAttribute = RowAttribute](Sequence[type[RowAttribute]]):
         return len(self.body_types) + 1
 
 
-class RowSchemaError[IdT: RowAttribute](Exception):
-    def __init__(self, schema: RowSchema[IdT]) -> None:
+class RowSchemaError(Exception):
+    def __init__(self, schema: RowSchema) -> None:
         self.schema = schema
         super().__init__()
 
 
 @dataclass(frozen=True)
-class Row[IdT: RowAttribute = RowAttribute](
-    IdentifiedValue[IdT], Sequence[RowAttribute]
-):
+class Row(IdentifiedValue[RowAttribute], Sequence[RowAttribute]):
     body: tuple[RowAttribute, ...]
-    schema: RowSchema[IdT]
+    schema: RowSchema
 
     def __post_init__(self) -> None:
         for attribute_and_type in zip(self, self.schema, strict=False):
@@ -83,102 +83,28 @@ class Row[IdT: RowAttribute = RowAttribute](
         return len(self.body) + 1
 
 
-def row_from_attributes[IdT: RowAttribute](
+def dynamic_schema(
+    schema_name: str, row_id: RowAttribute, row_body: tuple[RowAttribute, ...]
+) -> RowSchema:
+    return RowSchema(schema_name, type(row_id), tuple(map(type, row_body)))
+
+
+def row_with_dynamic_schema(
+    schema_name: str, row_id: RowAttribute, row_body: tuple[RowAttribute, ...]
+) -> Row:
+    return Row(row_id, row_body, dynamic_schema(schema_name, row_id, row_body))
+
+
+def row_from_attributes(
     attrs: tuple[RowAttribute, ...],
-    schema: RowSchema[IdT],
-) -> Row[IdT]:
+    schema: RowSchema,
+) -> Row:
     if not attrs:
         raise RowSchemaError(schema)
 
     id, *body = attrs
 
-    return Row(cast(IdT, id), tuple(body), schema)
-
-
-def encoded_attribute_value(value: RowAttribute) -> str:
-    if isinstance(value, bool):
-        return str(int(value))
-
-    if isinstance(value, int):
-        return str(value)
-
-    if isinstance(value, str):
-        return parse.quote(value)
-
-    if isinstance(value, datetime):
-        return value.isoformat()
-
-    if isinstance(value, StrEnum):
-        return parse.quote(value.value)
-
-    return str(value)
-
-
-def decoded_bool_attribute(encoded_value: str, _: object) -> bool | None:
-    match encoded_value:
-        case "1":
-            return True
-        case "0":
-            return False
-        case _:
-            return None
-
-
-def decoded_int_attribute(
-    encoded_value: str,
-    _: object,
-) -> int | None:
-    try:
-        return int(encoded_value)
-    except ValueError:
-        return None
-
-
-def decoded_str_attribute(
-    encoded_value: str,
-    _: object,
-) -> str:
-    return parse.unquote(encoded_value)
-
-
-def decoded_datetime_attribute(
-    encoded_value: str,
-    _: object,
-) -> datetime | None:
-    try:
-        return datetime.fromisoformat(encoded_value)
-    except ValueError:
-        return None
-
-
-def decoded_uuid_attribute(
-    encoded_value: str,
-    _: object,
-) -> UUID | None:
-    try:
-        return UUID(hex=encoded_value)
-    except ValueError:
-        return None
-
-
-def decoded_str_enum_attribute(
-    encoded_value: str,
-    enum_type: type[StrEnum]
-) -> StrEnum | None:
-    try:
-        return enum_type(parse.unquote(encoded_value))
-    except ValueError:
-        return None
-
-
-decoded_attribute_func_by_attribute_type = {
-    bool: decoded_bool_attribute,
-    int: decoded_int_attribute,
-    str: decoded_str_attribute,
-    datetime: decoded_datetime_attribute,
-    UUID: decoded_uuid_attribute,
-    StrEnum: decoded_str_enum_attribute
-}
+    return Row(id, tuple(body), schema)
 
 
 attribute_separator = " "
@@ -208,7 +134,7 @@ def encoded_attribute(
     attribute: RowAttribute,
 ) -> str:
     header = encoded_attribute_header(attribute_number, schema)
-    body = encoded_attribute_value(attribute)
+    body = encoded_primitive(attribute)
 
     return f"{header}{body}"
 
@@ -218,7 +144,7 @@ def encoded_attribute_header(
     schema: RowSchema,
 ) -> str:
     return (
-        f"{schema.name}{attribute_number}{attrubute_header_end}"
+        f"{schema.name}[{attribute_number}]{attrubute_header_end}"
     )
 
 
@@ -240,19 +166,14 @@ def decoded_attribute(
     if header != excepted_header:
         return None
 
-    raw_attribute = parse.unquote(body)
     attribute_type = schema[attribute_number]
 
-    decoded_attribute_func = decoded_attribute_func_by_attribute_type[
-        attribute_type
-    ]
-
-    return decoded_attribute_func(raw_attribute, attribute_type)  # type: ignore[arg-type]
+    return decoded_primitive(body, attribute_type)
 
 
-def decoded_row[IdT: RowAttribute](
-    schema: RowSchema[IdT], encoded_row: str
-) -> Row[IdT]:
+def decoded_row(
+    schema: RowSchema, encoded_row: str
+) -> Row:
     encoded_attributes = encoded_row.split(attribute_separator)
 
     attributes = tuple(
@@ -273,26 +194,35 @@ def decoded_row[IdT: RowAttribute](
     )
 
 
-def processed_encoded_row[IdT: RowAttribute](
-    processed_row: Callable[[Row[IdT]], LifeCycle[Row[IdT]]],
+def schema_name_of_encoded_row(encoded_row: str) -> str | None:
+    schema_name_end_index = encoded_row.find("[")
+
+    if schema_name_end_index == -1:
+        return None
+
+    return encoded_row[:schema_name_end_index]
+
+
+def processed_encoded_row(
+    processed_row: Callable[[Row], LifeCycle[Row]],
     encoded_row_: str,
-    encoded_row_schema: RowSchema[IdT]
-) -> LifeCycle[Row[IdT]]:
+    encoded_row_schema: RowSchema
+) -> LifeCycle[Row]:
 
     return processed_row(decoded_row(encoded_row_schema, encoded_row_))
 
 
-def map_encoded_row[IdT: RowAttribute](
-    next_row: Callable[[Row[IdT]], Row[IdT]],
+def map_encoded_row(
+    next_row: Callable[[Row], Row],
     encoded_row_: str,
-    encoded_row_schema: RowSchema[IdT]
+    encoded_row_schema: RowSchema
 ) -> str:
     next_row_ = next_row(decoded_row(encoded_row_schema, encoded_row_))
 
     return encoded_row(next_row_)  # type: ignore[arg-type]
 
 
-def select_query(
+def query_text(
     schema: RowSchema, attribute_number: int, attribute: RowAttribute | None
 ) -> str:
     if attribute is None:

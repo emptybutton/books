@@ -1,5 +1,6 @@
 from enum import StrEnum
 from typing import cast
+from uuid import UUID
 
 from effect import (
     Effect,
@@ -7,7 +8,7 @@ from effect import (
     LifeCycle,
 )
 
-from books.infrastructure.row import Row, RowAttribute, RowSchema
+from books.infrastructure.telethon.row import Row, RowSchema
 
 
 class State(StrEnum):
@@ -17,28 +18,29 @@ class State(StrEnum):
     deleted = "deleted"
 
 
-def schema_of_row_with_state[IdT: RowAttribute](
-    schema: RowSchema[IdT]
-) -> RowSchema[IdT]:
+def schema_of_row_in_transaction(
+    schema: RowSchema
+) -> RowSchema:
     return RowSchema(
-        f"__{schema.name}WithState__",
+        schema.name,
         schema.id_type,
-        (*schema.body_types, State),
+        (*schema.body_types, State, UUID),
     )
 
 
-def schema_of_row_without_state[IdT: RowAttribute](
-    schema: RowSchema[IdT]
-) -> RowSchema[IdT]:
+def schema_of_row_not_in_transaction(
+    schema: RowSchema
+) -> RowSchema:
     return RowSchema(
-        schema.name[len("__"):-len("WithState__")],
+        schema.name,
         schema.id_type,
-        schema.body_types[:-1],
+        schema.body_types[:-2],
     )
 
 
-def rows_with_state_as_attribute(
-    effect: LifeCycle[Row]
+def rows_in_transaction(
+    effect: LifeCycle[Row],
+    transaction_id: UUID,
 ) -> tuple[Row, ...]:
     rows_by_state = {
         State.created: effect.new_values,
@@ -48,40 +50,46 @@ def rows_with_state_as_attribute(
     }
 
     return tuple(
-        Row(row.id, (*Row.body, state), schema_of_row_with_state(row.schema))
+        Row(
+            row.id,
+            (*Row.body, state, transaction_id),
+            schema_of_row_in_transaction(row.schema)
+        )
         for state, rows in rows_by_state.items()
         for row in rows
     )
 
 
-def row_without_state_as_attribute[IdT: RowAttribute](
-    row: Row[IdT]
-) -> Row[IdT]:
+def row_not_in_transaction(row_in_transaction: Row) -> Row:
     return Row(
-        row.id,
-        row.body,
-        schema_of_row_without_state(row.schema),
+        row_in_transaction.id,
+        row_in_transaction.body[:-2],
+        schema_of_row_not_in_transaction(
+            row_in_transaction.schema
+        ),
     )
 
 
-def effect_from_rows_with_state_as_attribute(
-    rows_with_state_as_attribute: tuple[Row, ...],
+def effect_from_rows_in_transaction(
+    rows_in_transaction: tuple[Row, ...],
 ) -> LifeCycle[Row]:
     new_values = list[Row]()
     translated_values = list[Row]()
     mutated_values = list[Row]()
     dead_values = list[Row]()
 
-    for row in rows_with_state_as_attribute:
-        match cast(State, row[-1]):
+    for row in rows_in_transaction:
+        row_not_in_transaction_ = row_not_in_transaction(row)
+
+        match cast(State, row[-2]):
             case State.created:
-                new_values.append(row_without_state_as_attribute(row))
+                new_values.append(row_not_in_transaction_)
             case State.translated:
-                translated_values.append(row_without_state_as_attribute(row))
+                translated_values.append(row_not_in_transaction_)
             case State.mutated:
-                mutated_values.append(row_without_state_as_attribute(row))
+                mutated_values.append(row_not_in_transaction_)
             case State.deleted:
-                dead_values.append(row_without_state_as_attribute(row))
+                dead_values.append(row_not_in_transaction_)
 
     return Effect(
         None,
