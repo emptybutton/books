@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from enum import StrEnum
 from typing import cast
 from uuid import UUID
@@ -6,6 +7,10 @@ from effect import (
     Effect,
     IdentifiedValueSet,
     LifeCycle,
+    dead,
+    existing,
+    mutated,
+    new,
 )
 
 from books.infrastructure.telethon.row import Row, RowSchema
@@ -13,7 +18,6 @@ from books.infrastructure.telethon.row import Row, RowSchema
 
 class State(StrEnum):
     created = "created"
-    translated = "translated"
     mutated = "mutated"
     deleted = "deleted"
 
@@ -44,7 +48,6 @@ def rows_in_transaction(
 ) -> tuple[Row, ...]:
     rows_by_state = {
         State.created: effect.new_values,
-        State.translated: effect.translated_values,
         State.mutated: effect.mutated_values,
         State.deleted: effect.dead_values,
     }
@@ -70,31 +73,15 @@ def row_not_in_transaction(row_in_transaction: Row) -> Row:
     )
 
 
-def effect_from_rows_in_transaction(
-    rows_in_transaction: tuple[Row, ...],
+def effect_from_row_in_transaction(
+    row_in_transaction: Row,
 ) -> LifeCycle[Row]:
-    new_values = list[Row]()
-    translated_values = list[Row]()
-    mutated_values = list[Row]()
-    dead_values = list[Row]()
+    row = row_not_in_transaction(row_in_transaction)
 
-    for row in rows_in_transaction:
-        row_not_in_transaction_ = row_not_in_transaction(row)
-
-        match cast(State, row[-2]):
-            case State.created:
-                new_values.append(row_not_in_transaction_)
-            case State.translated:
-                translated_values.append(row_not_in_transaction_)
-            case State.mutated:
-                mutated_values.append(row_not_in_transaction_)
-            case State.deleted:
-                dead_values.append(row_not_in_transaction_)
-
-    return Effect(
-        None,
-        new_values=IdentifiedValueSet(new_values),
-        translated_values=IdentifiedValueSet(translated_values),
-        mutated_values=IdentifiedValueSet(mutated_values),
-        dead_values=IdentifiedValueSet(dead_values),
-    )
+    match cast(State, row[-2]):
+        case State.created:
+            return new(row)
+        case State.mutated:
+            return mutated(row)
+        case State.deleted:
+            return dead(row)

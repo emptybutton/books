@@ -19,7 +19,7 @@ from books.infrastructure.telethon.row import (
 
 
 @dataclass
-class InTelegramRows:
+class InTelegramRowHeap:
     pool_to_insert: TelegramClientPool
     pool_to_select: TelegramClientPool
     pool_to_edit: TelegramClientPool

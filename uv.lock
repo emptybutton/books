@@ -37,6 +37,7 @@ dependencies = [
     { name = "telethon" },
     { name = "typenv" },
     { name = "uvicorn", extra = ["standard"] },
+    { name = "websockets" },
 ]
 
 [package.optional-dependencies]
@@ -69,6 +70,7 @@ requires-dist = [
     { name = "telethon", specifier = "==1.40.0" },
     { name = "typenv", specifier = "==0.2.0" },
     { name = "uvicorn", extras = ["standard"], specifier = "==0.30.6" },
+    { name = "websockets", specifier = ">=15.0" },
 ]
 provides-extras = ["dev", "prod"]
 

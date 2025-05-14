@@ -18,7 +18,7 @@ type RowAttribute = Primitive
 class RowSchema(Sequence[type[RowAttribute]]):
     name: str
     id_type: type[RowAttribute]
-    body_types: tuple[type[RowAttribute], ...]
+    body_types: tuple[type[RowAttribute], ...] = tuple()
 
     def __iter__(self) -> Iterator[type[RowAttribute]]:
         yield self.id_type  # type: ignore[misc]

@@ -1,37 +1,32 @@
+from abc import ABC, abstractmethod
 from collections.abc import Generator
 from dataclasses import dataclass
 
 from telethon.types import Message
 
 from books.infrastructure.telethon.client_pool import TelegramClientPool
-from books.infrastructure.telethon.primitive import (
-    Primitive,
-    decoded_primitive,
-    encoded_primitive,
-)
 
 
 @dataclass(frozen=True)
-class InTelegramPointer[PrimitiveT: Primitive]:
+class InTelegramValue[ValueT](ABC):
     pool_to_insert: TelegramClientPool
     pool_to_select: TelegramClientPool
     pool_to_delete: TelegramClientPool
     pointer_chat_id: int
-    primitive_type: type[PrimitiveT]
 
-    async def set(self, primitive: PrimitiveT) -> None:
+    async def set(self, value: ValueT, /) -> None:
         await self.pool_to_insert().send_message(
             self.pointer_chat_id,
-            encoded_primitive(primitive),
+            self._encoded(value),
         )
 
-    def __await__(self) -> Generator[None, None, PrimitiveT]:
+    def __await__(self) -> Generator[None, None, ValueT]:
         return self.get().__await__()
 
-    async def get(self) -> PrimitiveT:
+    async def get(self) -> ValueT:
         pointer_message = await self._pointer_message()
 
-        return decoded_primitive(pointer_message.message, self.primitive_type)
+        return self._decoded(pointer_message.message)
 
     async def refresh(self) -> None:
         pointer_message = await self._pointer_message()
@@ -39,6 +34,12 @@ class InTelegramPointer[PrimitiveT: Primitive]:
         client = self.pool_to_delete()
 
         await client.delete_message(self.pointer_chat_id, ids_to_delete)
+
+    @abstractmethod
+    def _encoded(self, value: ValueT, /) -> str: ...
+
+    @abstractmethod
+    def _decoded(self, encoded_value: str, /) -> ValueT: ...
 
     async def _pointer_message(self) -> Message:
         pointer_messages = await self.pool_to_select().get_messages(
